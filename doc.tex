@@ -1,0 +1,931 @@
+%
+%	Allgemein
+%
+\documentclass[paper=A4,pagesize=auto,12pt,headinclude=true,footinclude=true,BCOR=0mm,DIV=calc]{scrartcl}
+
+\usepackage[head=30pt,foot=30pt]{geometry}
+
+\renewcommand*{\familydefault}{\sfdefault}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage[utf8]{inputenc}
+
+\usepackage[ngerman]{babel} % neue deutsche Trennungsregeln, etc
+
+\usepackage[scaled=1]{helvet} %Schriftart
+
+% Schönere Schriftart für nicht proportionale Schrift laden
+\usepackage{courier}
+
+\usepackage{graphicx}
+\usepackage{amssymb, amsfonts, amsthm, amsmath, float}
+
+\usepackage{setspace}   
+\onehalfspacing % 1,5 Zeilenabstand
+
+%
+%	Projektinformationen
+%
+\newcommand{\allgclassname}{KIMBdbf}
+\newcommand{\allgclassversion}{4.5}
+
+%
+%	PDF Meta
+%
+\usepackage[
+	pdftitle={\allgclassname},
+	pdfsubject={Dokumentation für die KIMB-technologies
+	 \allgclassname ~PHP-Klasse},
+	pdfauthor={KIMB-technologies},
+	pdfcreator={KIMB-technologies PDF},
+	pdfproducer={KIMB-technologies PDF}
+]{hyperref}
+\pdfcompresslevel=9
+\pdfobjcompresslevel=9
+
+%
+%	Quellcode
+%
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage{textcomp}
+\lstset{%
+  basicstyle=\ttfamily,%
+  showstringspaces=false,%
+  upquote=true}
+\lstdefinestyle{pseudo}{language={},%
+  basicstyle=\normalfont,%
+  morecomment=[l]{//},%
+  morekeywords={for,to,while,do,if,then,else},%
+  mathescape=true,%
+  columns=fullflexible}
+% \begin{lstlisting}[gobble=4,language=Java]
+%     public class Main {
+%       public static void main(String[] args) {
+%         System.out.println("Hallo Welt");
+%       }
+%     }
+%  \end{lstlisting}
+
+%
+%	Fußzeile und Kopfzeile
+%
+\usepackage{fancyhdr} 
+\pagestyle{fancy} 
+\lhead{\allgclassname}
+\chead{Version \allgclassversion}
+\rhead{\thepage} 
+\lfoot{\today}
+\cfoot{}
+\rfoot{\copyright ~KIMB-technologies}
+\renewcommand{\footrulewidth}{0.2pt}
+\renewcommand{\headrulewidth}{0.2pt}
+
+%
+%	Links ohne Box
+%
+\hypersetup{
+    colorlinks,
+    linkcolor={black},
+    citecolor={black},
+    urlcolor={blue}
+}
+
+
+
+\begin{document}
+
+  %Titelseite
+  \title{Dokumentation für die \allgclassname ~PHP-Klasse}
+  \author{KIMB-technologies}
+  \date{\today}
+  \maketitle
+  
+  \thispagestyle{empty}
+  
+  %Inhaltsverzeichnis
+  \newpage
+  \tableofcontents
+
+  %
+  %Seitenteile:
+  %
+
+  \newpage
+  \section{Allgemein}
+  
+  Die KIMBdbf PHP-Klasse (KIMB databasefile) für PHP ersetzt eine Datenbank, sie kann
+  aber auch in ergänzug zu einer Datenbank verwendet werden, z.B. zur Speicherung der 
+  Zugangsdaten.\\
+  Alle Datensätze werden komplett in Dateien direkt auf dem Server gespeichert.
+  Die Klasse ist komplett in PHP geschrieben und jedes Skript muss nur die Klassendatei laden
+  per \lstinline-require- oder mit einem autoload.\\
+  Die Klasse beinhaltet viele Methoden zur Datenspeicherung, so ist lesen, schreiben und Suchen von bestimmten
+  Datensätzen möglich. Es Funktionen die den elementaren Methoden entsprechen.\\
+  Es wird PHP 5 (größer 5.5.0) oder PHP 7 benötigt. Für verschlüsselte Dateien ist PHP Mcrypt erforderlich.\\
+  
+  \subsection{Dateiaufbau}
+  \subsubsection{Beispieldatei}
+  
+  \begin{lstlisting}[gobble=2,language=Java]
+   
+  <[about:doc]>KIMB dbf V4.10 - KIMB-technologies<[about:doc]>
+  <[user]>mmuster<[user]>
+  <[name]>Max Mustermann<[name]>
+  <[aboutme]>Ich bin der Max.<[aboutme]>
+  <[passwort]>2f4cdd81258da5f104bb343ab9d13ef<[passwort]>
+  <[groups]>chemie<[groups]>
+  <[groups]>physik<[groups]>
+  <[membership1]>newsletter chemie<[membership1]>
+  <[membership2]>newsletter physik<[membership2]>
+  <[membership3]>newsletter uni<[membership3]>
+  <[105]>note==abschluesse<[105]>
+  <[105-note]>1<[105-note]>
+  <[105-abschluesse]>Chemie<[105-abschluesse]>
+  
+  \end{lstlisting}
+  
+  \subsubsection{Datensatzarten}
+  
+  Es gibt drei verschiedenen Arten von Datensätzen:
+  
+  \begin{description}
+    \item[Normal] \hfill \\
+      Es wird einem Tag ein Inhalt zugeordnet.\\
+      Tags können einmal oder mehrfach vorhanden sein.\\
+      \begin{itshape}
+	Ein Tag kann nur ersetzt oder gelöscht werden, wenn dieser nur einmal
+	in einer Datei vorhanden ist.\\
+	Es kann aber in den Inhalten mehrfach vorhandener
+	Tags gesucht werden.
+      \end{itshape}
+      \\
+      \textbf{Beispielanwendung:} Logdatei, Benutzerdatei, Konfigurationsdatei
+    \item[Aufzählung] \hfill \\
+      Es werden einem Tag mehrere Inhalte zugeordnet.\\
+      \begin{itshape}
+	Es können einzelne Inhalte gelöscht werden.
+      \end{itshape}
+      \\
+      \textbf{Beispielanwendung:} Zugriffsrechte, Newsletter, Gruppen
+    \item[ID-Zuordnung] \hfill \\
+      Es wird eine ID erstellt, welche eigenen Untergruppen
+      erhält und diese mit Inhalten füllen kann.\\
+      \begin{itshape}
+	Es können alle Inhalte einer ID bestimmt werden,
+	genauso können alle IDs nach einem bestimmten Inhalt
+	durchsucht werden.\\
+	Es können einzelne Inhalte bearbeitet werden.\\
+	Genau wie eine Tabelle einer Datenbank.
+      \end{itshape}
+      \\
+      \textbf{Beispielanwendung:} Auflistungen mit Attributen, Benutzerdatei, Konfigurationsdatei\\
+      Alle IDs in einer Datei werden automatisch der Aufzählung \lstinline* allidslist * hinzugefügt.
+  \end{description}
+
+  
+  \subsection{Lizenz}
+  Die KIMBMySQL PHP-Klasse ist unter der GPLv3 veröffentlicht.\\
+  \href{http://www.gnu.org/licenses/gpl-3.0.txt}{http://www.gnu.org/licenses/gpl-3.0.txt}
+
+  \section{Einbau}
+  
+  Die KIMBdbf PHP-Klasse kann per autoload in ein Projekt eingebunden werden. Sie ist unter dem \lstinline-namespace KIMBdbf;- zu erreichen.\\
+  Die Klassendatei erhalten Sie (\href{https://github.com/kimbtech/KIMBdbf}{hier}).\\
+  \\
+  Zur Speicherung der Daten werden Dateien genutzt. Ohne besondere Konfiguration wird automatisch
+  ein Unterordner „/kimb-data/“ bei der Klassendatei zur Speicherung der Dateien gewählt.
+  (Dieser kann bei der Initialisierung des Objektes anders gewählt werden.)\\
+  Dieser Ordner muss vorhanden und für PHP schreibbar sein, aus Sicherheitsgründen sollte er nicht mit einem Browser zu erreichen sein.\\
+  \\
+  Seit Version 4.5 werden die KIMB-Dateien beim Schreiben durch die KIMBdbf-Klasse gesperrt, es ist somit
+  kein paralleles Schreiben verschiedener Prozesse/ Objekte möglich.\\
+  Sollte das Schreiben einmal nicht möglich sein, führt die KIMBdbf 10 Versuche durch,
+  doch noch Schreibrechte zu erhalten (mit je 0,75 Sekunden Pause). Sollte sie dabei keine Rechte
+  erhalten, wird das Skript beendet!\\
+  Gleichzeitiges Lesen in einer Datei von verschiedenen Prozessen/ Objekten aus stellt kein Problem dar!\\
+    
+  \newpage
+  \section{Verwendung}
+  
+  \subsection{Kodierung, Vergebene Zeichen}
+  
+  Die KIMBdbf verlangt keine bestimmte Kodierung, da PHP Datensätze immer so in Dateien
+  speichert, wie es diese erhält. Das bedeutet, man muss sich für eine Kodierung entschieden
+  und alle Datensätze kommen dann so zurück wie diese übergeben wurden.\\
+  Es ist sicherlich sinnvoll weit verbeitete Kodierungen zu verenden, z.B. UTF-8.\\
+  \\
+  \begin{description}
+   \item[Dateiname] \hfill \\
+    Dateinamen dürfen nur aus Zeichen von A-Z (groß und klein) sowie Ziffern bestehen. Außderdem sind
+    die folgenden Sonderzeichen erlaubt: \lstinline* _ . - / *\\
+    Deutsche Umlaute, das Sz sowie Punkte und Leerzeichen, werden automatisch umgeschrieben. Alle
+    anderen verbotenen Zeichen werden herausgeschnitten.
+   \item[Tag] \hfill \\
+    Die Tags dürfen aus allen Zeichen bestehen, mit Ausnahmen von \lstinline* <[ * , \lstinline* ]> * und \lstinline* about:doc *,
+    welche zu \lstinline* < * , \lstinline* > * und \lstinline* aboutdoc * umgeschrieben werden.\\
+    Auch Zeilenumbrüche sowie Tabulatoren sind verboten, diese werden herausgeschnitten.
+   \item[Inhalt] \hfill \\
+    Inhalte können alle Zeichen haben. \\
+    \\
+    \begin{itshape}
+     Intern werden einige Zeichen bzw. Zeichenketten kodiert gespeichert und bei der Ausgabe zurückverwandelt.
+     (Umbrüche, Tabulatoren, \lstinline* <[ * , \lstinline* ]> * und \lstinline* == *)
+     Die kodierte Speicherung benötigt etwas mehr Speicherplatz.
+    \end{itshape}
+    \\
+    \\
+    Ab Version 4.5 ist es möglich neben Strings als Inhalten auch Arrays as Inhalte zu speichern. \\
+    \begin{itshape}
+      Die Arrays werden bei der Speicherung automatisch erkannt und als JSON abgelegt.\\
+      Für die Ausgabe wird das JSON dann wieder zu PHP-Arrays konvertiert.\\
+      \\
+      In der Dokumentation ist weiterhin String als Typ für die Parameter und Rückgaben der Inhalte angeben.
+      Sie können hier aber auch Arrays übergeben, bzw. müssen mit Rückgaben als Array rechnen.\\
+      (Arrays kommen natürlich nur zurück, wenn diese auch bei der Speicherung übegeben wurden.)
+    \end{itshape}
+
+  \end{description}
+
+  \newpage
+  
+  \subsection{Objekt erstellen}
+  
+   Erstellen Sie zuerst ein Objekt der KIMBdbf PHP-Klasse.
+   \begin{lstlisting}[gobble=4,language=Java]
+     $dbf = new KIMBdbf\KIMBdbf(
+	      $datei [, $encryptkey = 'off' [, $path = __DIR__ ]]
+	    );
+   \end{lstlisting}
+   
+   \begin{tabular}{|lcp{0.7\textwidth}|}
+ 	  \hline
+ 	    \multicolumn{3}{|l|}{ \textbf{Parameter} } \\
+ 	  \hline
+ 	    \$datei & String & \begin{itshape} Name der KIMB-Datei, in der das Objekt arbeiten soll. (üblicherweise *.kimb) (Unterordner möglich) (Datei muss nicht vorhanden sein, wird automatisch erstellt) \end{itshape} \\
+ 	  &&\\
+ 	    \$encryptkey & Sting & \begin{itshape} Passwort, mit dem die Datei verschlüsselt wurde/ verschlüsselt werden soll. (Verschlüsselung über PHP Mcrypt; \lstinline* MCRYPT_BLOWFISH , MCRYPT_MODE_CBC * ) (nicht übergeben => \lstinline* off * => keine Verschlüsselung) \end{itshape} \\
+ 	  &&\\
+ 	    \$path & String & \begin{itshape} Pfad zum Ordner „/kimb-data/“. (nicht übergeben => \lstinline* __DIR__ * => Unterordner direkt bei der Klassendatei) \end{itshape} \\
+ 	  \hline
+ 	    \multicolumn{3}{|l|}{ \textbf{Rückgabe} } \\
+ 	  \hline
+ 	    \multicolumn{3}{|c|}{ KIMBdbf Objekt } \\
+ 	  \hline
+  \end{tabular}
+  Anschließend können sie gleich mit dem Objekt arbeiten. Sie können natürlich auch mehrere KIMBdbf Objekte Parallel verwenden.
+
+  \subsection{Methodenübersicht}
+  Die Übersicht zeigt die verschiedenen Methoden, sortiert nach den Datensatzarten.
+   
+  \begin{tabular}{|l|p{0.4\textwidth}|p{0.4\textwidth}|}
+      \hline
+	& \textbf{ Lesen \& Suchen } & \textbf{ Schreiben } \\
+      \hline
+	\textbf{ Normal } & \hyperref[sec:mth_one_read]{ \$this->read\_kimb\_one } & \hyperref[sec:mth_new]{ \$this->write\_kimb\_new } \\
+			  & \hyperref[sec:mth_all]{ \$this->read\_kimb\_all } & \hyperref[sec:mth_replace]{ \$this->write\_kimb\_replace } \\
+			  & \hyperref[sec:mth_search]{ \$this->read\_kimb\_search } & \hyperref[sec:mth_del]{ \$this->write\_kimb\_delete } \\
+			  &							& \hyperref[sec:mth_one_write]{ \$this->write\_kimb\_one } \\
+      \hline
+	\textbf{ Aufzählung } & \hyperref[sec:mth_all_tpl]{ \$this->read\_kimb\_all\_teilpl } & \hyperref[sec:mth_tpl]{ \$this->write\_kimb\_teilpl } \\
+			      & \hyperref[sec:mth_search_tpl]{ \$this->read\_kimb\_search\_teilpl } & \hyperref[sec:mth_tpl_del]{ \$this->write\_kimb\_teilpl\_del\_all } \\
+      \hline
+	\textbf{ ID-Zuordnung } & \hyperref[sec:mth_id]{ \$this->read\_kimb\_id } & \hyperref[sec:mth_id_next]{ \$this->next\_kimb\_id } \\
+				& \hyperref[sec:mth_id_all_xx]{ \$this->read\_kimb\_all\_xxxid } & \hyperref[sec:mth_id_write]{ \$this->write\_kimb\_id } \\
+				& \hyperref[sec:mth_id_all]{ \$this->read\_kimb\_id\_all } & \hyperref[sec:mth_id_write_arr]{ \$this->write\_kimb\_id\_array } \\
+				& \hyperref[sec:mth_id_search]{ \$this->search\_kimb\_id } & \\
+				& \hyperref[sec:mth_search_xx]{ \$this->search\_kimb\_xxxid } & \\
+      \hline
+      \hline
+	\textbf{ Weitere } & \multicolumn{2}{|c|}{ \hyperref[sec:mth_fshow]{ \$this->show\_kimb\_file } } \\
+			  & \multicolumn{2}{|c|}{ \hyperref[sec:mth_fdel]{ \$this->delete\_kimb\_file } } \\
+      \hline
+  \end{tabular}
+  \label{tab:methodenuerbersicht}
+  \textit { Klicken Sie auf eine Methode und sie werden zur genauen Erklärung geleitet. }
+%
+%
+%
+  \subsection{Methoden} 
+  \subsubsection{\$this->read\_kimb\_one}
+  \label{sec:mth_one_read}
+	    Lesen des Inhalts eines Tags. (wenn mehrfach vorhanden, erster Inhalt)
+	    \begin{lstlisting}[gobble=4,language=Java]
+	      $dbf->read_kimb_one( $teil );
+	    \end{lstlisting}
+	    
+	    \begin{tabular}{|lcp{0.7\textwidth}|}
+		    \hline
+		      \multicolumn{3}{|l|}{ \textbf{Parameter} } \\
+		    \hline
+		      \$teil & String & \begin{itshape} Tag des Inhalts \end{itshape} \\
+		    \hline
+		      \multicolumn{3}{|l|}{ \textbf{Rückgabe} } \\
+		    \hline
+			     & String & \begin{itshape} Inhalt \end{itshape} \\
+		    \hline
+	    \end{tabular}
+	    \begin{flushright} \small \hyperref[tab:methodenuerbersicht]{Zur Methodenübersicht} \end{flushright}
+  
+  \subsubsection{\$this->read\_kimb\_all}
+  \label{sec:mth_all}
+	    Lesen aller Inhalte eines Tags.
+	    \begin{lstlisting}[gobble=4,language=Java]
+	      $dbf->read_kimb_all( $teil );
+	    \end{lstlisting}
+	    
+	    \begin{tabular}{|lcp{0.7\textwidth}|}
+		    \hline
+		      \multicolumn{3}{|l|}{ \textbf{Parameter} } \\
+		    \hline
+		      \$teil & String & \begin{itshape} Tag der Inhalte \end{itshape} \\
+		    \hline
+		      \multicolumn{3}{|l|}{ \textbf{Rückgabe} } \\
+		    \hline
+			     & Array & \begin{itshape} Inhalte \end{itshape} \\
+		    \hline
+	    \end{tabular}
+	    \begin{flushright} \small \hyperref[tab:methodenuerbersicht]{Zur Methodenübersicht} \end{flushright}
+  
+  \subsubsection{\$this->read\_kimb\_search}
+  \label{sec:mth_search}
+	   Suchen nach einem Tag mit bestimmtem Inhalt, bei mehrfach vorhanden Tags.
+	    \begin{lstlisting}[gobble=4,language=Java]
+	      $dbf->read_kimb_search( $teil, $search );
+	    \end{lstlisting}
+	    
+	    \begin{tabular}{|lcp{0.7\textwidth}|}
+		    \hline
+		      \multicolumn{3}{|l|}{ \textbf{Parameter} } \\
+		    \hline
+		      \$teil & String & \begin{itshape} Tag der zu durchsuchenden Inhalte \end{itshape} \\
+		      \$search & String & \begin{itshape} Gesuchter Inhalt \end{itshape} \\
+		    \hline
+		      \multicolumn{3}{|l|}{ \textbf{Rückgabe} } \\
+		    \hline
+			     & Boolean & \begin{itshape} Gefunden? \end{itshape} \\
+		    \hline
+	    \end{tabular}
+	    \begin{flushright} \small \hyperref[tab:methodenuerbersicht]{Zur Methodenübersicht} \end{flushright}
+  
+  \subsubsection{\$this->write\_kimb\_new}
+  \label{sec:mth_new}
+	    Einen Inhalt in einen neuen Tag schreiben.
+	    \begin{lstlisting}[gobble=4,language=Java]
+	      $dbf->write_kimb_new( $teil, $inhalt );
+	    \end{lstlisting}
+	    
+	    \begin{tabular}{|lcp{0.7\textwidth}|}
+		    \hline
+		      \multicolumn{3}{|l|}{ \textbf{Parameter} } \\
+		    \hline
+		      \$teil & String & \begin{itshape} Tag für den neuen Inhalt \end{itshape} \\
+		      \$inhalt & String & \begin{itshape} Neuer Inhalt \end{itshape} \\
+		    \hline
+		      \multicolumn{3}{|l|}{ \textbf{Rückgabe} } \\
+		    \hline
+			     & Boolean & \begin{itshape} Erfolgreich? \end{itshape} \\
+		    \hline
+	    \end{tabular}
+	    \begin{flushright} \small \hyperref[tab:methodenuerbersicht]{Zur Methodenübersicht} \end{flushright}
+  
+  \subsubsection{\$this->write\_kimb\_replace}
+  \label{sec:mth_replace}
+	    Einen Inhalt in einem vorhanden Tag ersetzen. (Tag darf nur einmal vorhanden sein)
+	    \begin{lstlisting}[gobble=4,language=Java]
+	      $dbf->write_kimb_replace( $teil, $inhalt );
+	    \end{lstlisting}
+	    
+	    \begin{tabular}{|lcp{0.7\textwidth}|}
+		    \hline
+		      \multicolumn{3}{|l|}{ \textbf{Parameter} } \\
+		    \hline
+		      \$teil & String & \begin{itshape} Tag mit dem alten Inhalt \end{itshape} \\
+		      \$inhalt & String & \begin{itshape} Neuer Inhalt \end{itshape} \\
+		    \hline
+		      \multicolumn{3}{|l|}{ \textbf{Rückgabe} } \\
+		    \hline
+			     & Boolean & \begin{itshape} Erfolgreich? \end{itshape} \\
+		    \hline
+	    \end{tabular}
+	    \begin{flushright} \small \hyperref[tab:methodenuerbersicht]{Zur Methodenübersicht} \end{flushright}
+  
+  \subsubsection{\$this->write\_kimb\_delete}
+  \label{sec:mth_del}
+	    Einen Tag löschen. (Tag darf nur einmal vorhanden sein)
+	    \begin{lstlisting}[gobble=4,language=Java]
+	      $dbf->write_kimb_delete( $teil );
+	    \end{lstlisting}
+	    
+	    \begin{tabular}{|lcp{0.7\textwidth}|}
+		    \hline
+		      \multicolumn{3}{|l|}{ \textbf{Parameter} } \\
+		    \hline
+		      \$teil & String & \begin{itshape} Zu löschender Tag \end{itshape} \\
+		    \hline
+		      \multicolumn{3}{|l|}{ \textbf{Rückgabe} } \\
+		    \hline
+			     & Boolean & \begin{itshape} Erfolgreich? \end{itshape} \\
+		    \hline
+	    \end{tabular}
+	    \begin{flushright} \small \hyperref[tab:methodenuerbersicht]{Zur Methodenübersicht} \end{flushright}
+  
+  \subsubsection{\$this->write\_kimb\_one} 
+  \label{sec:mth_one_write}
+	    Inhalt einfach unter einem Tag ablegen. (Tag wird erstellt, sofern dieser noch nicht vorhanden ist, andernfalls wird der Inhalt ersetzt.)
+	    \begin{lstlisting}[gobble=4,language=Java]
+	      $dbf->write_kimb_one( $teil, $inhalt );
+	    \end{lstlisting}
+	    
+	    \begin{tabular}{|lcp{0.7\textwidth}|}
+		    \hline
+		      \multicolumn{3}{|l|}{ \textbf{Parameter} } \\
+		    \hline
+		      \$teil & String & \begin{itshape} Tag für den Inhalt \end{itshape} \\
+		      \$inhalt & String & \begin{itshape} Neuer Inhalt \end{itshape} \\
+		    \hline
+		      \multicolumn{3}{|l|}{ \textbf{Rückgabe} } \\
+		    \hline
+			     & Boolean & \begin{itshape} Erfolgreich? \end{itshape} \\
+		    \hline
+	    \end{tabular}
+	    \begin{flushright} \small \hyperref[tab:methodenuerbersicht]{Zur Methodenübersicht} \end{flushright}
+  
+%
+  \subsubsection{\$this->read\_kimb\_search\_teilpl}
+  \label{sec:mth_search_tpl}
+	    Inhalt unter einem Tag in einer Aufzählung suchen.
+	    \begin{lstlisting}[gobble=4,language=Java]
+	      $dbf->read_kimb_search_teilpl( $teil, $search );
+	    \end{lstlisting}
+	    
+	    \begin{tabular}{|lcp{0.7\textwidth}|}
+		    \hline
+		      \multicolumn{3}{|l|}{ \textbf{Parameter} } \\
+		    \hline
+		      \$teil & String & \begin{itshape} Tag der zu durchsuchenden Inhalte \end{itshape} \\
+		      \$search & String & \begin{itshape} Gesuchter Inhalt \end{itshape} \\
+		    \hline
+		      \multicolumn{3}{|l|}{ \textbf{Rückgabe} } \\
+		    \hline
+			     & Boolean & \begin{itshape} Gefunden? \end{itshape} \\
+		    \hline
+	    \end{tabular}
+	    \begin{flushright} \small \hyperref[tab:methodenuerbersicht]{Zur Methodenübersicht} \end{flushright}
+  
+  \subsubsection{\$this->read\_kimb\_all\_teilpl}
+  \label{sec:mth_all_tpl}
+	    Alle Inhalte unter einem Tag in einer Aufzählung ausgeben.
+	    \begin{lstlisting}[gobble=4,language=Java]
+	      $dbf->read_kimb_all_teilpl( $teil );
+	    \end{lstlisting}
+	    
+	     \begin{tabular}{|lcp{0.7\textwidth}|}
+		    \hline
+		      \multicolumn{3}{|l|}{ \textbf{Parameter} } \\
+		    \hline
+		      \$teil & String & \begin{itshape} Tag der Inhalte \end{itshape} \\
+		    \hline
+		      \multicolumn{3}{|l|}{ \textbf{Rückgabe} } \\
+		    \hline
+			     & Array & \begin{itshape} Inhalte \end{itshape} \\
+		    \hline
+	    \end{tabular}
+	    \begin{flushright} \small \hyperref[tab:methodenuerbersicht]{Zur Methodenübersicht} \end{flushright}
+  
+  \subsubsection{\$this->write\_kimb\_teilpl}
+  \label{sec:mth_tpl}
+	    Inhalte einer Aufzählung hinzufügen, ändern und löschen.
+	    \begin{lstlisting}[gobble=4,language=Java]
+	      $dbf->write_kimb_teilpl( $teil, $inhalt, $todo );
+	    \end{lstlisting}
+	    
+	     \begin{tabular}{|lcp{0.7\textwidth}|}
+		    \hline
+		      \multicolumn{3}{|l|}{ \textbf{Parameter} } \\
+		    \hline
+		      \$teil & String & \begin{itshape} Tag des Inhalts/ der Aufzählung \end{itshape} \\
+		      \$inhalt & String & \begin{itshape} Neuer oder zu löschender Inhalt \end{itshape} \\
+		      \$todo & String & \lstinline* add * \begin{itshape} Inhalt neu hinzufügen oder verändern \end{itshape} \\
+			     &		& \lstinline* del * \begin{itshape} Inhalt aus der Aufzählung löschen \end{itshape} \\
+		    \hline
+		      \multicolumn{3}{|l|}{ \textbf{Rückgabe} } \\
+		    \hline
+			     & Boolean & \begin{itshape} Erfolgreich? \end{itshape} \\
+		    \hline
+	    \end{tabular}
+	    \begin{flushright} \small \hyperref[tab:methodenuerbersicht]{Zur Methodenübersicht} \end{flushright}
+  
+  \subsubsection{\$this->write\_kimb\_teilpl\_del\_all}
+  \label{sec:mth_tpl_del}
+	    Alle Inhalte und die gesamte Aufzählung löschen.
+	    \begin{lstlisting}[gobble=4,language=Java]
+	      $dbf->write_kimb_teilpl_del_all( $teil );
+	    \end{lstlisting}
+	    
+	     \begin{tabular}{|lcp{0.7\textwidth}|}
+		    \hline
+		      \multicolumn{3}{|l|}{ \textbf{Parameter} } \\
+		    \hline
+		      \$teil & String & \begin{itshape} Tag der Inhalte/ Aufzählung \end{itshape} \\
+		    \hline
+		      \multicolumn{3}{|l|}{ \textbf{Rückgabe} } \\
+		    \hline
+			     & Boolean & \begin{itshape} Erfolgreich? \end{itshape} \\
+		    \hline
+	    \end{tabular}
+	    \begin{flushright} \small \hyperref[tab:methodenuerbersicht]{Zur Methodenübersicht} \end{flushright}
+  
+%  
+  \subsubsection{\$this->read\_kimb\_id}
+  \label{sec:mth_id}
+	    Inhalte einer Untergruppe einer ID lesen oder alle Untergruppen einer ID lesen.
+	    \begin{lstlisting}[gobble=4,language=Java]
+	      $dbf->read_kimb_id( $id [, $xxxid = '---all---'] );
+	    \end{lstlisting}
+	    
+	     \begin{tabular}{|lcp{0.7\textwidth}|}
+		    \hline
+		      \multicolumn{3}{|l|}{ \textbf{Parameter} } \\
+		    \hline
+		      \$id & Int & \begin{itshape} ID mit Inhalten und Untergruppen \end{itshape} \\
+		      \$xxxid & String & \begin{itshape} Name der Untergruppe, deren Inhalt ausgeben werden soll (nicht übergeben => Array mit Inhalten aller Untergruppen)\end{itshape} \\
+		    \hline
+		      \multicolumn{3}{|l|}{ \textbf{Rückgabe} } \\
+		    \hline
+			  & String & \begin{itshape} Inhalt der gewählten Untergruppe  \end{itshape} \\
+			  & Array & \begin{itshape} Inhalt aller Untergruppen der ID  \end{itshape} \\
+			   \multicolumn{3}{|r|}{ abhängig von \$xxxid } \\
+		    \hline
+	    \end{tabular}
+	    \begin{flushright} \small \hyperref[tab:methodenuerbersicht]{Zur Methodenübersicht} \end{flushright}
+  
+  \subsubsection{\$this->read\_kimb\_all\_xxxid}
+  \label{sec:mth_id_all_xx}
+	    Alle Untergruppen einer ID ausgeben.
+	    \begin{lstlisting}[gobble=4,language=Java]
+	      $dbf->read_kimb_all_xxxid( $id );
+	    \end{lstlisting}
+	    
+	     \begin{tabular}{|lcp{0.7\textwidth}|}
+		    \hline
+		      \multicolumn{3}{|l|}{ \textbf{Parameter} } \\
+		    \hline
+		      \$id & Int & \begin{itshape} ID, von der man die Untergruppen wissen will \end{itshape} \\
+		    \hline
+		      \multicolumn{3}{|l|}{ \textbf{Rückgabe} } \\
+		    \hline
+			  & Array & \begin{itshape} Array mit allen Untergruppen der gewählten ID \end{itshape} \\
+		    \hline
+	    \end{tabular}
+	    \begin{flushright} \small \hyperref[tab:methodenuerbersicht]{Zur Methodenübersicht} \end{flushright}
+
+	    
+\subsubsection{\$this->read\_kimb\_id\_all}
+ \label{sec:mth_id_all}
+	    Alle Inhalte aller IDs in der Datei ausgeben.
+	    \begin{lstlisting}[gobble=4,language=Java]
+	      $dbf->read_kimb_id_all();
+	    \end{lstlisting}
+	    
+	     \begin{tabular}{|lcp{0.7\textwidth}|}
+		    \hline
+		      \multicolumn{3}{|l|}{ \textbf{Parameter} } \\
+		    \hline
+		       \multicolumn{3}{|c|}{ keine } \\
+		    \hline
+		      \multicolumn{3}{|l|}{ \textbf{Rückgabe} } \\
+		    \hline
+			  & Array & \begin{itshape} Array mit allen IDs, Untergruppen und Inhalten \end{itshape} \\
+			  &  & \lstinline* array( ID =>   * \\
+			  &  & \lstinline* 	array( XXXID => Inhalt, ... ), * \\
+			  &  & \lstinline*ID => .... ) * \\
+
+		    \hline
+	    \end{tabular}
+	    \begin{flushright} \small \hyperref[tab:methodenuerbersicht]{Zur Methodenübersicht} \end{flushright}
+  
+  \subsubsection{\$this->search\_kimb\_id}
+  \label{sec:mth_id_search}
+	    Suchen nach einem Inhalt in allen Untergruppen einer ID.
+	    \begin{lstlisting}[gobble=4,language=Java]
+	      $dbf->search_kimb_id( $search , $id ); 
+	    \end{lstlisting}
+	    
+	     \begin{tabular}{|lcp{0.7\textwidth}|}
+		    \hline
+		      \multicolumn{3}{|l|}{ \textbf{Parameter} } \\
+		    \hline
+		      \$search & String & \begin{itshape} Gesuchter Inhalt einer Untergruppe \end{itshape} \\
+		      \$id & Int & \begin{itshape} ID, deren Untergruppen durchsucht werden \end{itshape} \\
+		    \hline
+		      \multicolumn{3}{|l|}{ \textbf{Rückgabe} } \\
+		    \hline
+			  & Boolean/ String & \begin{itshape} Wenn Inhalt gefunden, dann Name der Untergruppe, sonst false \end{itshape} \\
+		    \hline
+	    \end{tabular}
+	    \begin{flushright} \small \hyperref[tab:methodenuerbersicht]{Zur Methodenübersicht} \end{flushright}
+  
+  \subsubsection{\$this->search\_kimb\_xxxid}
+  \label{sec:mth_search_xx}
+	    Durchsuchen von allen IDs nach einem Inhalt in einer Untergruppe.
+	    \begin{lstlisting}[gobble=4,language=Java]
+	$dbf->search_kimb_xxxid( $search, $xxxid ); 
+	    \end{lstlisting}
+	    
+	     \begin{tabular}{|lcp{0.7\textwidth}|}
+		    \hline
+		      \multicolumn{3}{|l|}{ \textbf{Parameter} } \\
+		    \hline
+		      \$search & String & \begin{itshape} Gesuchter Inhalt einer Untergruppe \end{itshape} \\
+		      \$xxxid & String & \begin{itshape} Untergruppe, welche durchsucht werden soll \end{itshape} \\
+		    \hline
+		      \multicolumn{3}{|l|}{ \textbf{Rückgabe} } \\
+		    \hline
+			  & Boolean/ Int & \begin{itshape} Wenn Inhalt gefunden, dann ID, sonst false \end{itshape} \\
+		    \hline
+	    \end{tabular}
+	    \begin{flushright} \small \hyperref[tab:methodenuerbersicht]{Zur Methodenübersicht} \end{flushright}
+  
+  \subsubsection{\$this->next\_kimb\_id}
+  \label{sec:mth_id_next}
+	    Herausfinden der nächsten freien ID in der aktuellen KIMBdbf. \\
+	    \begin{lstlisting}[gobble=4,language=Java]
+	      $dbf->next_kimb_id(); 
+	    \end{lstlisting}
+	    
+	     \begin{tabular}{|lcp{0.7\textwidth}|}
+		    \hline
+		      \multicolumn{3}{|l|}{ \textbf{Parameter} } \\
+		    \hline
+		      \multicolumn{3}{|c|}{ keine } \\
+		    \hline
+		      \multicolumn{3}{|l|}{ \textbf{Rückgabe} } \\
+		    \hline
+			  & Int & \begin{itshape} Nächste freie ID \end{itshape} \\
+		    \hline
+	    \end{tabular}
+	    \begin{flushright} \small \hyperref[tab:methodenuerbersicht]{Zur Methodenübersicht} \end{flushright}
+  
+  \subsubsection{\$this->write\_kimb\_id}
+  \label{sec:mth_id_write}
+	    Schreiben und löschen von Inhalten in IDs und Untergruppen. \\
+	    \begin{lstlisting}[gobble=4,language=Java]
+     $dbf->write_kimb_id(
+       $id, $todo [, $xxxid = '---none---'
+       		[, $inhalt = '---none---' [, $oldmode = false ]]]
+     ); 
+	    \end{lstlisting}
+	    
+	     \begin{tabular}{|lcp{0.7\textwidth}|}
+		    \hline
+		      \multicolumn{3}{|l|}{ \textbf{Parameter} } \\
+		    \hline
+		       \$id & Int & \begin{itshape} ID, in der geschrieben werden soll (wird automatisch erstellt, sollte sie leer sein) \end{itshape} \\
+			    & 	 & \begin{itshape} (Bei \lstinline* 0 * wird automatisch eine freie ID  gesucht. [Auto\_Increment]) \end{itshape} \\
+			    & 	 & \begin{itshape} (Unter \lstinline* public KIMBdbf::last_written_id * finden Sie die zuletzt veränderte ID.) \end{itshape} \\ 
+		       
+		       \$todo & String & \lstinline* add * \begin{itshape} Untergruppe neu hinzufügen oder Inhalt verändern \end{itshape} \\
+			     &		& \lstinline* del * \begin{itshape} Untergruppe oder ID löschen \end{itshape} \\
+			     
+		       \$xxxid & String & \begin{itshape} Untergruppe, in der gearbeitet werden soll (nicht übergeben \& \$todo \lstinline* del * => gesamte ID löschen)\end{itshape} \\
+		       
+		       \$inhalt & String & \begin{itshape} Inhalt, der geschrieben werden soll (nicht übergeben nur sinnvoll wenn ID oder Untergruppe gelöscht werden soll)\end{itshape} \\
+		       
+		       \$oldmode & Boolean & \begin{itshape} Auto\_Increment deaktivieren, dadurch lässt sich die ID \lstinline* 0 * schreiben.\end{itshape} \\
+		    \hline
+		      \multicolumn{3}{|l|}{ \textbf{Rückgabe} } \\
+		    \hline
+			  & Boolean & \begin{itshape} Erfolgreich? \end{itshape} \\
+		    \hline
+	    \end{tabular}
+	    \begin{flushright} \small \hyperref[tab:methodenuerbersicht]{Zur Methodenübersicht} \end{flushright}
+  
+  \subsubsection{\$this->write\_kimb\_id\_array}
+  \label{sec:mth_id_write_arr}
+	    Ein Array mit mehreren IDs in einer KIMBdbf ablegen.\\
+	    Quasi das schreibende Gegenstück zu \hyperref[sec:mth_id_all]{ \lstinline* $dbf->read_kimb_id_all() * }.
+	    \begin{lstlisting}[gobble=4,language=Java]
+	$dbf->write_kimb_id_array( $array );
+	    \end{lstlisting}
+	    
+	     \begin{tabular}{|lcp{0.7\textwidth}|}
+		    \hline
+		      \multicolumn{3}{|l|}{ \textbf{Parameter} } \\
+		    \hline
+		      \$array & Array & \begin{itshape} Array mit IDs, Untergruppen und Inhalten \end{itshape} \\
+			  &  & \lstinline* array( ID =>   * \\
+			  &  & \lstinline* 	array( XXXID => Inhalt, ... ), * \\
+			  &  & \lstinline*ID => .... ) * \\
+			  &  & \begin{itshape} Achtung, die Inhalte der IDs/ Untergruppen werden überschrieben.\end{itshape} \\
+		      
+		    \hline
+		      \multicolumn{3}{|l|}{ \textbf{Rückgabe} } \\
+		    \hline
+			  & Boolean & \begin{itshape} Erfolgreich? \end{itshape} \\
+		    \hline
+	    \end{tabular}
+	    \begin{flushright} \small \hyperref[tab:methodenuerbersicht]{Zur Methodenübersicht} \end{flushright}
+
+  
+%  
+  \subsubsection{\$this->delete\_kimb\_file}
+  \label{sec:mth_fdel}
+	    Die gesamte KIMB-Datei löschen. \\
+	    \begin{lstlisting}[gobble=4,language=Java]
+	      $dbf->delete_kimb_file();
+	    \end{lstlisting}
+	    
+	     \begin{tabular}{|lcp{0.7\textwidth}|}
+		    \hline
+		      \multicolumn{3}{|l|}{ \textbf{Parameter} } \\
+		    \hline
+		      \multicolumn{3}{|c|}{ keine } \\
+		    \hline
+		      \multicolumn{3}{|l|}{ \textbf{Rückgabe} } \\
+		    \hline
+			     & Boolean & \begin{itshape} Erfolgreich? \end{itshape} \\
+		    \hline
+	    \end{tabular}
+	    \begin{flushright} \small \hyperref[tab:methodenuerbersicht]{Zur Methodenübersicht} \end{flushright}
+
+  \subsubsection{\$this->show\_kimb\_file}
+  \label{sec:mth_fshow}
+	    Die gesamte KIMB-Datei, wie sie auf dem Dateisystem liegt, zurückgeben.
+	    \begin{lstlisting}[gobble=4,language=Java]
+	      $dbf->show_kimb_file();
+	    \end{lstlisting}
+	    
+	     \begin{tabular}{|lcp{0.7\textwidth}|}
+		    \hline
+		      \multicolumn{3}{|l|}{ \textbf{Parameter} } \\
+		    \hline
+		      \multicolumn{3}{|c|}{ keine } \\
+		    \hline
+		      \multicolumn{3}{|l|}{ \textbf{Rückgabe} } \\
+		    \hline
+			     & String & \begin{itshape} Dateiinhalt \end{itshape} \\
+		    \hline
+	    \end{tabular}
+	    \begin{flushright} \small \hyperref[tab:methodenuerbersicht]{Zur Methodenübersicht} \end{flushright}
+  
+%
+%
+%
+ \newpage
+ \subsection{Funktionen}
+ Bei den Funktionen ist nur der Zugriff auf die Datensatzart \glqq Normal\grqq ~möglich. Außerdem ist keine Wahl des \glqq/kimb-data/\grqq ~Pfades möglich. Auch die Verschlüsselung ist immer deaktviert.\\
+ Die Funktionen arbeiten technisch gesehen auch mit der KIMBdbf Klasse.
+  
+  \subsubsection{read\_kimb\_one}
+	    Lesen des Inhalts eines Tags. (wenn mehrfach vorhanden, erster Inhalt)
+	    \begin{lstlisting}[gobble=4,language=Java]
+	      read_kimb_one( $datei, $teil );
+	    \end{lstlisting}
+	    
+	    \begin{tabular}{|lcp{0.7\textwidth}|}
+		    \hline
+		      \multicolumn{3}{|l|}{ \textbf{Parameter} } \\
+		    \hline
+		      \$datei & String & \begin{itshape} Name der KIMB-Datei (wie für das Objekt)\end{itshape} \\
+		      \$teil & String & \begin{itshape} Tag des Inhalts \end{itshape} \\
+		    \hline
+		      \multicolumn{3}{|l|}{ \textbf{Rückgabe} } \\
+		    \hline
+			     & String & \begin{itshape} Inhalt \end{itshape} \\
+		    \hline
+	    \end{tabular}
+	    
+  \subsubsection{read\_kimb\_search}
+	    Suchen nach einem Tag mit bestimmtem Inhalt, bei mehrfach vorhanden Tags.
+	    \begin{lstlisting}[gobble=4,language=Java]
+	      read_kimb_search( $datei, $teil, $search );
+	    \end{lstlisting}
+	    
+	    \begin{tabular}{|lcp{0.7\textwidth}|}
+		    \hline
+		      \multicolumn{3}{|l|}{ \textbf{Parameter} } \\
+		    \hline
+		      \$datei & String & \begin{itshape} Name der KIMB-Datei (wie für das Objekt)\end{itshape} \\
+		      \$teil & String & \begin{itshape} Tag der zu durchsuchenden Inhalte \end{itshape} \\
+		      \$search & String & \begin{itshape} Gesuchter Inhalt \end{itshape} \\
+		    \hline
+		      \multicolumn{3}{|l|}{ \textbf{Rückgabe} } \\
+		    \hline
+			     & Boolean & \begin{itshape} Gefunden? \end{itshape} \\
+		    \hline
+	    \end{tabular}
+	   
+  \subsubsection{write\_kimb\_new}
+	    Einen Inhalt in einen neuen Tag schreiben.
+	    \begin{lstlisting}[gobble=4,language=Java]
+	      write_kimb_new( $datei, $teil, $inhalt );
+	    \end{lstlisting}
+	    
+	    \begin{tabular}{|lcp{0.7\textwidth}|}
+		    \hline
+		      \multicolumn{3}{|l|}{ \textbf{Parameter} } \\
+		    \hline
+		      \$datei & String & \begin{itshape} Name der KIMB-Datei (wie für das Objekt)\end{itshape} \\
+		      \$teil & String & \begin{itshape} Tag für den neuen Inhalt \end{itshape} \\
+		      \$inhalt & String & \begin{itshape} Neuer Inhalt \end{itshape} \\
+		    \hline
+		      \multicolumn{3}{|l|}{ \textbf{Rückgabe} } \\
+		    \hline
+			     & Boolean & \begin{itshape} Erfolgreich? \end{itshape} \\
+		    \hline
+	    \end{tabular}
+  \subsubsection{write\_kimb\_replace}
+	    Einen Inhalt in einem vorhanden Tag ersetzen. (Tag darf nur einmal vorhanden sein)
+	    \begin{lstlisting}[gobble=4,language=Java]
+	      write_kimb_replace( $datei, $teil, $inhalt );
+	    \end{lstlisting}
+	    
+	    \begin{tabular}{|lcp{0.7\textwidth}|}
+		    \hline
+		      \multicolumn{3}{|l|}{ \textbf{Parameter} } \\
+		    \hline
+		      \$datei & String & \begin{itshape} Name der KIMB-Datei (wie für das Objekt)\end{itshape} \\
+		      \$teil & String & \begin{itshape} Tag mit dem alten Inhalt \end{itshape} \\
+		      \$inhalt & String & \begin{itshape} Neuer Inhalt \end{itshape} \\
+		    \hline
+		      \multicolumn{3}{|l|}{ \textbf{Rückgabe} } \\
+		    \hline
+			     & Boolean & \begin{itshape} Erfolgreich? \end{itshape} \\
+		    \hline
+	    \end{tabular}
+	    
+  \subsubsection{write\_kimb\_delete}
+	    Einen Tag löschen. (Tag darf nur einmal vorhanden sein)
+	    \begin{lstlisting}[gobble=4,language=Java]
+	      write_kimb_delete( $datei, $teil );
+	    \end{lstlisting}
+	    
+	    \begin{tabular}{|lcp{0.7\textwidth}|}
+		    \hline
+		      \multicolumn{3}{|l|}{ \textbf{Parameter} } \\
+		    \hline
+		      \$datei & String & \begin{itshape} Name der KIMB-Datei (wie für das Objekt)\end{itshape} \\
+		      \$teil & String & \begin{itshape} Zu löschender Tag \end{itshape} \\
+		    \hline
+		      \multicolumn{3}{|l|}{ \textbf{Rückgabe} } \\
+		    \hline
+			     & Boolean & \begin{itshape} Erfolgreich? \end{itshape} \\
+		    \hline
+	    \end{tabular}
+  
+  \subsubsection{delete\_kimb\_datei}
+	    Die gesamte KIMB-Datei löschen.
+	    \begin{lstlisting}[gobble=4,language=Java]
+	      delete_kimb_datei( $datei );
+	    \end{lstlisting}
+	    
+	     \begin{tabular}{|lcp{0.7\textwidth}|}
+		    \hline
+		      \multicolumn{3}{|l|}{ \textbf{Parameter} } \\
+		    \hline
+		         \$datei & String & \begin{itshape} Name der KIMB-Datei (wie für das Objekt)\end{itshape} \\
+		    \hline
+		      \multicolumn{3}{|l|}{ \textbf{Rückgabe} } \\
+		    \hline
+			     & Boolean & \begin{itshape} Erfolgreich? \end{itshape} \\
+		    \hline
+	    \end{tabular}
+ 
+  \newpage
+  
+  \subsection{Überlagerung}
+  
+  Bei den KIMB-Dateien ist kein vollständiger Schutz vor Überschreiben/ Mehrfachbelegung eingebaut, 
+  so kann man mit einer Methode für einen normalen Datensatz auch Aufzählung oder ID-
+  Zuordnungen umschreiben. Dies ist kein Fehler, sollte aber jedem Entwickler im 
+  Hinterkopf bleiben. Dadurch ermöglicht sich ein einfacher Aufbau eigener Funktionen 
+  oder auch das Bearbeiten eines Inhalts ohne die dafür vorgesehene Funktion.\\
+  Um Überschreiben zu verhindern bietet sich folgendes an:
+  
+  \begin{enumerate}
+   \item Alle ID's sind Zahlen
+   \item Keine Tags fangen mit Zahlen an (Schutz für ID-Zuordnung)
+   \item Keine Tags enden mit Zahlen (Schutz für Aufzählungen)
+   \item Aufzählungen erhalten einen Präfix, z.B.: „tp-“
+   \item Untergruppen bestehen nur aus Buchstaben
+   \item Normale Datensätze erhalten einen Präfix, z.B.: „nt-“
+  \end{enumerate}
+  
+  \newpage
+  \section{Links}
+  
+  \begin{description}
+    \item[KIMBdbf] \hfill \\
+          \href{https://github.com/kimbtech/KIMBdbf}{https://github.com/kimbtech/KIMBdbf}\\
+    \item[KIMB-technologies] \hfill \\
+	  CMS, Downloader und Co.\\
+	  \href{https://kimbtech.github.io/}{https://kimbtech.github.io/}
+    \item[GIT] \hfill \\
+	  \href{https://bitbucket.org/kimbtech/}{https://bitbucket.org/kimbtech/}\\
+	  \href{https://github.com/kimbtech/}{https://gtihub.com/kimbtech/}
+    \item[Lizenz] \hfill \\
+	\href{http://www.gnu.org/licenses/gpl-3.0.txt}{http://www.gnu.org/licenses/gpl-3.0.txt}
+  \end{description}
+
+\end{document}
